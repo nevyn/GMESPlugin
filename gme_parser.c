@@ -23,7 +23,7 @@ unsigned lengthInSamplesOfTrack(const track_info_t *track)
 }
 
 
-bool GMEParserOpen(struct SpotifyLFParserPlugin *plugin, const char *path, int song_index)
+spbool_t GMEParserOpen(struct SpotifyLFParserPlugin *plugin, const char *path, int song_index)
 {
 	plugin->context = calloc(sizeof(struct GMEParserContext), 1);
 	
@@ -34,7 +34,7 @@ bool GMEParserOpen(struct SpotifyLFParserPlugin *plugin, const char *path, int s
 	err = gme_open_file(path, &emu, gme_info_only);
 	if (err) {
 		fprintf(stderr, "GMEParserOpen(%s): %s\n", path, err);
-		return false;
+		return spfalse;
 	}
 	
 	self->track_count = gme_track_count(emu);
@@ -43,12 +43,12 @@ bool GMEParserOpen(struct SpotifyLFParserPlugin *plugin, const char *path, int s
 	err = gme_track_info(emu, &self->gmetrack, self->trackno);
 	if (err) {
 		fprintf(stderr, "GMEParserOpen(%s): %s\n", path, err);
-		return false;
+		return spfalse;
 	}
 	
 	self->filename = strdup(path);
 	
-	return true;
+	return sptrue;
 }
 void GMEParserClose(struct SpotifyLFParserPlugin *plugin)
 {
@@ -64,9 +64,9 @@ unsigned int GMEParserSongCount(struct SpotifyLFParserPlugin *plugin)
 {
 	return self->track_count;
 }
-bool GMEParserIsStereo(struct SpotifyLFParserPlugin *plugin)
+spbool_t GMEParserIsStereo(struct SpotifyLFParserPlugin *plugin)
 {
-	return true;
+	return sptrue;
 }
 unsigned int GMEParserSampleRate(struct SpotifyLFParserPlugin *plugin)
 {
@@ -77,30 +77,15 @@ unsigned int GMEParserLengthInSamples(struct SpotifyLFParserPlugin *plugin)
 	return lengthInSamplesOfTrack(&self->gmetrack);
 }
 
-bool GMEParserHasField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType frame)
+spbool_t GMEParserHasField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType frame)
 {
-	return GMEParserFieldLength(plugin, frame) != 0;
+	unsigned length;
+	spbool_t status = GMEParserReadField(plugin, frame, NULL, &length);
+	return status && length > 0;
 }
-unsigned int GMEParserFieldLength(struct SpotifyLFParserPlugin *plugin, enum SPFieldType type)
+spbool_t GMEParserReadField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType type, char *dest, unsigned int *length)
 {
-	switch (type) {
-		case kSPFieldTypeTitle:
-			if(strlen(self->gmetrack.song) > 0) return strlen(self->gmetrack.song);
-			return 255;
-		case kSPFieldTypeArtist: return strlen(self->gmetrack.author);
-		case kSPFieldTypeAlbum: 
-		case kSPFieldTypeAlbumArtist: return strlen(self->gmetrack.game) ?:((self->track_count==1)?255:0);
-		case kSPFieldTypeComment: return strlen(self->gmetrack.comment);
-		case kSPFieldTypeComposer: return strlen(self->gmetrack.dumper);
-		case kSPFieldTypeCopyright: return strlen(self->gmetrack.copyright);
-		case kSPFieldTypePublisher: return strlen(self->gmetrack.system);
-		case kSPFieldTypeTrack: return 16;
-	}
-	return 0;
-}
-void GMEParserReadField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType type, char *dest, unsigned int *length)
-{
-	#define copy_setlen(attr) { strncpy(dest, self->gmetrack.attr, *length); *length = MIN(strlen(self->gmetrack.attr), *length); return; }
+	#define copy_setlen(attr) { if(dest) strncpy(dest, self->gmetrack.attr, *length); *length = MIN(strlen(self->gmetrack.attr), *length); return sptrue; }
 	switch (type) {
 		case kSPFieldTypeTitle:
 			if(strlen(self->gmetrack.song) > 0)
@@ -109,13 +94,20 @@ void GMEParserReadField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType t
 				if(self->track_count==1) {
 					// If single track in file, use file name as song
 					const char *filename = strrchr(self->filename, '/')+1;
-					strncpy(dest, filename, *length);
-					strrchr(dest, '.')[0] = '\0';
-				} else
-					*length = snprintf(dest, *length, "Track %02d", self->trackno+1);
+					if(dest) {
+						strncpy(dest, filename, *length);
+						strrchr(dest, '.')[0] = '\0';
+					} else
+						*length = strlen(filename);
+				} else {
+					if(dest)
+						*length = snprintf(dest, *length, "Track %02d", self->trackno+1);
+					else
+						*length = 20;
+				}
 				
 			}
-			return;
+			return sptrue;
 		case kSPFieldTypeArtist: copy_setlen(author);
 		case kSPFieldTypeAlbum:
 		case kSPFieldTypeAlbumArtist:;
@@ -124,25 +116,33 @@ void GMEParserReadField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType t
 			else {
 				if(self->track_count==1) {
 					// If single track in file, use folder name as game
-					strncpy(dest, self->filename, *length);
-					strrchr(dest, '/')[0] = '\0';
-					memmove(dest, strrchr(dest, '/')+1, strrchr(dest, '/') - dest-1);
+					if(dest) {
+						strncpy(dest, self->filename, *length);
+						strrchr(dest, '/')[0] = '\0';
+						memmove(dest, strrchr(dest, '/')+1, strrchr(dest, '/') - dest-1);
+					} else
+						*length = strlen(self->filename);
 				} else
 					*length = 0;
 			}
-			return;
+			return sptrue;
 		case kSPFieldTypeComment: copy_setlen(comment);
 		case kSPFieldTypeComposer: copy_setlen(dumper);
 		case kSPFieldTypeCopyright: copy_setlen(copyright);
 		case kSPFieldTypePublisher: copy_setlen(system);
 		case kSPFieldTypeTrack:
-			*length = snprintf(dest, *length, "%d", self->trackno+1);
-			return;
+			if(dest)
+				*length = snprintf(dest, *length, "%d", self->trackno+1);
+			else
+				*length = 20;
+			return sptrue;
 	}
+	return spfalse;
 }
-void GMEParserWriteField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType frame, const char *src, unsigned int write_length)
+spbool_t GMEParserWriteField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType frame, const char *src, unsigned int write_length)
 {
 	// nop
+	return 0;
 }
 
 
@@ -151,12 +151,11 @@ void GMEParserInitialize(struct SpotifyLFParserPlugin *plugin)
 {
 	plugin->open = GMEParserOpen;
 	plugin->close = GMEParserClose;
-	plugin->songCount = GMEParserSongCount;
+	plugin->getSongCount = GMEParserSongCount;
 	plugin->isStereo = GMEParserIsStereo;
-	plugin->sampleRate = GMEParserSampleRate;
-	plugin->lengthInSamples = GMEParserLengthInSamples;
+	plugin->getSampleRate = GMEParserSampleRate;
+	plugin->getLengthInSamples = GMEParserLengthInSamples;
 	plugin->hasField = GMEParserHasField;
-	plugin->fieldLength = GMEParserFieldLength;
 	plugin->readField = GMEParserReadField;
 	plugin->writeField = GMEParserWriteField;
 }

@@ -8,11 +8,11 @@ struct GMEPlayerContext {
 	unsigned length_in_samples;
 };
 
-bool GMEPlayerOpen(struct SpotifyLFPlaybackPlugin*, const char *path, int song_index);
+spbool_t GMEPlayerOpen(struct SpotifyLFPlaybackPlugin*, const char *path, int song_index);
 void GMEPlayerClose(struct SpotifyLFPlaybackPlugin*);
 
-bool GMEPlayerDecode(struct SpotifyLFPlaybackPlugin*, char *dest, int *destlen, bool *final);
-bool GMEPlayerSeek(struct SpotifyLFPlaybackPlugin*, unsigned sample);
+spbool_t GMEPlayerDecode(struct SpotifyLFPlaybackPlugin*, char *dest, int *destlen, spbool_t *final);
+spbool_t GMEPlayerSeek(struct SpotifyLFPlaybackPlugin*, unsigned sample);
 unsigned int GMEPlayerGetMinimumOutputBufferSize(struct SpotifyLFPlaybackPlugin*);
 unsigned int GMEPlayerGetLengthInSamples(struct SpotifyLFPlaybackPlugin*);
 

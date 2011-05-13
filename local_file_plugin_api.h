@@ -4,11 +4,12 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 
-#define SP_LF_PLUGIN_API_VERSION 1
+typedef unsigned char spbool_t;
+enum { spfalse, sptrue };
+
+#define SP_LF_PLUGIN_API_VERSION 2
 
 enum SpotifyLFSoundFormat {
 	kSoundFormat8BitsPerSample = 8,			// 8 bit per sample Native Endian PCM
@@ -42,11 +43,11 @@ struct SpotifyLFPlaybackPlugin {
 	void *context;
 	struct SpotifyLFPluginDescription *desc;
 	
-	bool (*open)(struct SpotifyLFPlaybackPlugin*, const char *path, int song_index);
+	spbool_t (*open)(struct SpotifyLFPlaybackPlugin*, const char *path, int song_index);
 	void (*close)(struct SpotifyLFPlaybackPlugin*);
 	
-	bool (*decode)(struct SpotifyLFPlaybackPlugin*, char *dest, int *destlen, bool *final);
-	bool (*seek)(struct SpotifyLFPlaybackPlugin*, unsigned sample);
+	spbool_t (*decode)(struct SpotifyLFPlaybackPlugin*, char *dest, int *destlen, spbool_t *final);
+	spbool_t (*seek)(struct SpotifyLFPlaybackPlugin*, unsigned sample);
 	unsigned int (*getMinimumOutputBufferSize)(struct SpotifyLFPlaybackPlugin*);
 	unsigned int (*getLengthInSamples)(struct SpotifyLFPlaybackPlugin*);
 	
@@ -57,18 +58,17 @@ struct SpotifyLFParserPlugin {
 	void *context;
 	struct SpotifyLFPluginDescription *desc;
 	
-	bool (*open)(struct SpotifyLFParserPlugin*, const char *path, int song_index);
+	spbool_t (*open)(struct SpotifyLFParserPlugin*, const char *path, int song_index);
 	void (*close)(struct SpotifyLFParserPlugin*);
 	
-	unsigned int (*songCount)(struct SpotifyLFParserPlugin*);
-	bool (*isStereo)(struct SpotifyLFParserPlugin*);
-	unsigned int (*sampleRate)(struct SpotifyLFParserPlugin*);
-	unsigned int (*lengthInSamples)(struct SpotifyLFParserPlugin*);
+	unsigned int (*getSongCount)(struct SpotifyLFParserPlugin*);
+	spbool_t (*isStereo)(struct SpotifyLFParserPlugin*);
+	unsigned int (*getSampleRate)(struct SpotifyLFParserPlugin*);
+	unsigned int (*getLengthInSamples)(struct SpotifyLFParserPlugin*);
 
-	bool (*hasField)(struct SpotifyLFParserPlugin*, enum SPFieldType type);
-	unsigned int (*fieldLength)(struct SpotifyLFParserPlugin*, enum SPFieldType type);
-	void (*readField)(struct SpotifyLFParserPlugin*, enum SPFieldType type, char *dest, unsigned int *length);
-	void (*writeField)(struct SpotifyLFParserPlugin*, enum SPFieldType type, const char *src, unsigned int write_length);
+	spbool_t (*hasField)(struct SpotifyLFParserPlugin*, enum SPFieldType type);
+	spbool_t (*readField)(struct SpotifyLFParserPlugin*, enum SPFieldType type, char *dest, unsigned int *length);
+	spbool_t (*writeField)(struct SpotifyLFParserPlugin*, enum SPFieldType type, const char *src, unsigned int write_length);
 };
 
 
