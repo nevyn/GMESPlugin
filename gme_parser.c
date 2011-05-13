@@ -6,7 +6,7 @@
 #define MIN(a, b) ( (a) < (b) ? (a) : (b) )
 
 static const unsigned samplerate = 44100;
-#define self ((struct GMEParserContext*)plugin->context)
+#define self ((struct GMEParserContext*)ctx)
 
 unsigned lengthInSamplesOfTrack(const track_info_t *track)
 {
@@ -23,9 +23,9 @@ unsigned lengthInSamplesOfTrack(const track_info_t *track)
 }
 
 
-spbool_t GMEParserOpen(struct SpotifyLFParserPlugin *plugin, const char *path, int song_index)
+void *GMEParserOpen(struct SpotifyLFPluginDescription *plugin, const char *path, int song_index)
 {
-	plugin->context = calloc(sizeof(struct GMEParserContext), 1);
+	struct GMEParserContext *ctx = calloc(sizeof(struct GMEParserContext), 1);
 	
 
 	
@@ -48,42 +48,38 @@ spbool_t GMEParserOpen(struct SpotifyLFParserPlugin *plugin, const char *path, i
 	
 	self->filename = strdup(path);
 	
-	return sptrue;
+	return ctx;
 }
-void GMEParserClose(struct SpotifyLFParserPlugin *plugin)
+void GMEParserClose(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
-	if(plugin->context) {
-		free(self->filename);
-		
-		free(plugin->context);
-		plugin->context = NULL;
-	}
+	free(self->filename);
+	free(ctx);
 }
 
-unsigned int GMEParserSongCount(struct SpotifyLFParserPlugin *plugin)
+unsigned int GMEParserSongCount(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
 	return self->track_count;
 }
-spbool_t GMEParserIsStereo(struct SpotifyLFParserPlugin *plugin)
+spbool GMEParserIsStereo(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
 	return sptrue;
 }
-unsigned int GMEParserSampleRate(struct SpotifyLFParserPlugin *plugin)
+unsigned int GMEParserSampleRate(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
 	return samplerate;
 }
-unsigned int GMEParserLengthInSamples(struct SpotifyLFParserPlugin *plugin)
+unsigned int GMEParserLengthInSamples(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
 	return lengthInSamplesOfTrack(&self->gmetrack);
 }
 
-spbool_t GMEParserHasField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType frame)
+spbool GMEParserHasField(struct SpotifyLFPluginDescription *plugin, void *ctx, enum SPFieldType frame)
 {
-	unsigned length;
-	spbool_t status = GMEParserReadField(plugin, frame, NULL, &length);
+	size_t length;
+	spbool status = GMEParserReadField(plugin, ctx, frame, NULL, &length);
 	return status && length > 0;
 }
-spbool_t GMEParserReadField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType type, char *dest, unsigned int *length)
+spbool GMEParserReadField(struct SpotifyLFPluginDescription *plugin, void *ctx, enum SPFieldType type, char *dest, size_t *length)
 {
 	#define copy_setlen(attr) { if(dest) strncpy(dest, self->gmetrack.attr, *length); *length = MIN(strlen(self->gmetrack.attr), *length); return sptrue; }
 	switch (type) {
@@ -97,6 +93,7 @@ spbool_t GMEParserReadField(struct SpotifyLFParserPlugin *plugin, enum SPFieldTy
 					if(dest) {
 						strncpy(dest, filename, *length);
 						strrchr(dest, '.')[0] = '\0';
+						*length = strlen(dest);
 					} else
 						*length = strlen(filename);
 				} else {
@@ -139,23 +136,17 @@ spbool_t GMEParserReadField(struct SpotifyLFParserPlugin *plugin, enum SPFieldTy
 	}
 	return spfalse;
 }
-spbool_t GMEParserWriteField(struct SpotifyLFParserPlugin *plugin, enum SPFieldType frame, const char *src, unsigned int write_length)
-{
-	// nop
-	return 0;
-}
 
 
 
 void GMEParserInitialize(struct SpotifyLFParserPlugin *plugin)
 {
-	plugin->open = GMEParserOpen;
-	plugin->close = GMEParserClose;
+	plugin->create = GMEParserOpen;
+	plugin->destroy = GMEParserClose;
 	plugin->getSongCount = GMEParserSongCount;
 	plugin->isStereo = GMEParserIsStereo;
 	plugin->getSampleRate = GMEParserSampleRate;
 	plugin->getLengthInSamples = GMEParserLengthInSamples;
 	plugin->hasField = GMEParserHasField;
 	plugin->readField = GMEParserReadField;
-	plugin->writeField = GMEParserWriteField;
 }

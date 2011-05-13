@@ -4,16 +4,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define self ((struct GMEPlayerContext*)plugin->context)
+#define self ((struct GMEPlayerContext*)ctx)
 static unsigned samplerate = 44100;
 
 static unsigned samples_to_ms(unsigned sample_count) {
 	return sample_count/(samplerate/1000);
 }
 
-spbool_t GMEPlayerOpen(struct SpotifyLFPlaybackPlugin *plugin, const char *path, int song_index)
+void *GMEPlayerOpen(struct SpotifyLFPluginDescription *plugin, const char *path, int song_index)
 {
-	plugin->context = calloc(sizeof(struct GMEPlayerContext), 1);
+	struct GMEPlayerContext *ctx = calloc(sizeof(struct GMEPlayerContext), 1);
 
 	self->trackno = song_index;
 	
@@ -21,12 +21,14 @@ spbool_t GMEPlayerOpen(struct SpotifyLFPlaybackPlugin *plugin, const char *path,
 	err = gme_open_file(path, &self->emu, samplerate);
 	if (err) {
 		fprintf(stderr, "GME couldn't open file %s: %s\n", path, err);
+		free(ctx);
 		return spfalse;
 	}
 	
 	err = gme_track_info(self->emu, &self->track, self->trackno);
 	if (err) {
 		fprintf(stderr, "GME couldn't get track info of track %d in %s: %s\n", song_index, path, err);
+		free(ctx);
 		return spfalse;
 	}
 	
@@ -35,25 +37,22 @@ spbool_t GMEPlayerOpen(struct SpotifyLFPlaybackPlugin *plugin, const char *path,
 	err = gme_start_track(self->emu, self->trackno);
 	if (err) {
 		fprintf(stderr, "GME couldn't play track %d in %s: %s\n", song_index, path, err);
+		free(ctx);
 		return spfalse;
 	}
 	
 	// Fade out during the last two seconds of playback
 	gme_set_fade(self->emu, samples_to_ms(self->length_in_samples)-2000);
 	
-	return sptrue;
+	return ctx;
 }
-void GMEPlayerClose(struct SpotifyLFPlaybackPlugin *plugin)
+void GMEPlayerClose(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
-	if(plugin->context) {
-		gme_delete(self->emu);
-		
-		free(plugin->context);
-		plugin->context = NULL;
-	}
+	gme_delete(self->emu);
+	free(ctx);
 }
 
-spbool_t GMEPlayerDecode(struct SpotifyLFPlaybackPlugin *plugin, char *dest, int *destlen, spbool_t *final)
+spbool GMEPlayerDecode(struct SpotifyLFPluginDescription *plugin, void *ctx, spbyte *dest, size_t *destlen, spbool *final)
 {
 	gme_err_t err;
 	err = gme_play(self->emu, *destlen/2, (short*)dest);
@@ -66,7 +65,7 @@ spbool_t GMEPlayerDecode(struct SpotifyLFPlaybackPlugin *plugin, char *dest, int
 
 	return sptrue;
 }
-spbool_t GMEPlayerSeek(struct SpotifyLFPlaybackPlugin *plugin, unsigned sample)
+spbool GMEPlayerSeek(struct SpotifyLFPluginDescription *plugin, void *ctx, unsigned sample)
 {
 	gme_err_t err;
 	err = gme_seek(self->emu, samples_to_ms(sample));
@@ -76,16 +75,16 @@ spbool_t GMEPlayerSeek(struct SpotifyLFPlaybackPlugin *plugin, unsigned sample)
 	}
 	return sptrue;
 }
-unsigned int GMEPlayerGetMinimumOutputBufferSize(struct SpotifyLFPlaybackPlugin *plugin)
+size_t GMEPlayerGetMinimumOutputBufferSize(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
 	return 1024*16;
 }
-unsigned int GMEPlayerGetLengthInSamples(struct SpotifyLFPlaybackPlugin *plugin)
+unsigned int GMEPlayerGetLengthInSamples(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
 	return self->length_in_samples;
 }
 
-void GMEPlayerGetAudioFormat(struct SpotifyLFPlaybackPlugin *plugin, int *samplerate_, enum SpotifyLFSoundFormat *format, int *channels)
+void GMEPlayerGetAudioFormat(struct SpotifyLFPluginDescription *plugin, void *ctx, unsigned int *samplerate_, enum SpotifyLFSoundFormat *format, unsigned int *channels)
 {
 	*samplerate_ = samplerate;
 	*format = kSoundFormat16BitsPerSample;
@@ -95,8 +94,8 @@ void GMEPlayerGetAudioFormat(struct SpotifyLFPlaybackPlugin *plugin, int *sample
 
 void GMEPlayerInitialize(struct SpotifyLFPlaybackPlugin *plugin)
 {
-	plugin->open = GMEPlayerOpen;
-	plugin->close = GMEPlayerClose;
+	plugin->create = GMEPlayerOpen;
+	plugin->destroy = GMEPlayerClose;
 	plugin->decode = GMEPlayerDecode;
 	plugin->seek = GMEPlayerSeek;
 	plugin->getMinimumOutputBufferSize = GMEPlayerGetMinimumOutputBufferSize;

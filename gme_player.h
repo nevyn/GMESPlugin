@@ -8,14 +8,24 @@ struct GMEPlayerContext {
 	unsigned length_in_samples;
 };
 
-spbool_t GMEPlayerOpen(struct SpotifyLFPlaybackPlugin*, const char *path, int song_index);
-void GMEPlayerClose(struct SpotifyLFPlaybackPlugin*);
+void *GMEPlayerOpen(struct SpotifyLFPluginDescription *plugin, const char *path, int song_index);
+void GMEPlayerClose(struct SpotifyLFPluginDescription *plugin, void *ctx);
 
-spbool_t GMEPlayerDecode(struct SpotifyLFPlaybackPlugin*, char *dest, int *destlen, spbool_t *final);
-spbool_t GMEPlayerSeek(struct SpotifyLFPlaybackPlugin*, unsigned sample);
-unsigned int GMEPlayerGetMinimumOutputBufferSize(struct SpotifyLFPlaybackPlugin*);
-unsigned int GMEPlayerGetLengthInSamples(struct SpotifyLFPlaybackPlugin*);
+spbool GMEPlayerDecode(
+	struct SpotifyLFPluginDescription *plugin, void *ctx,
+	spbyte *dest,
+	size_t *destlen,
+	spbool *final
+);
+spbool GMEPlayerSeek(struct SpotifyLFPluginDescription *plugin, void *ctx, unsigned sample);
+size_t GMEPlayerGetMinimumOutputBufferSize(struct SpotifyLFPluginDescription *plugin, void *ctx);
+unsigned int GMEPlayerGetLengthInSamples(struct SpotifyLFPluginDescription *plugin, void *ctx);
 
-void GMEPlayerGetAudioFormat(struct SpotifyLFPlaybackPlugin*, int *samplerate, enum SpotifyLFSoundFormat *format, int *channels);
+void GMEPlayerGetAudioFormat(
+	struct SpotifyLFPluginDescription *plugin, void *ctx,
+	unsigned int *samplerate,
+	enum SpotifyLFSoundFormat *format,
+	unsigned int *channels
+);
 
 void GMEPlayerInitialize(struct SpotifyLFPlaybackPlugin *plugin);
