@@ -1,0 +1,25 @@
+Game Music Emu Spotify Plugin
+=============================
+
+This is a wrapper around [Shay Green's wonderful and fantastic 
+Game Music Emu](http://www.slack.net/~ant/libs/) library, enabling
+[Spotify](http://spotify.com) to play classical game music files,
+such as those from games on Nintendo, Genesis, PC Engine and
+other consoles.
+
+Installation
+-------------
+Mac OS: Install GME.splugin into ~/Library/Application Support/Spotify/Plug-Ins/LocalFile/
+
+Windows: Dunno. Something similar to the above, I guess.
+
+Credits and license
+-------------------
+GMEsplugin is written by [Joachim Bengtsson](mailto:joachimb@gmail.com).
+
+Since GME is is LGPL, I don't have much choice other than to license
+GMEsplugin as LGPL as well.
+
+History
+--------
+2011-05-13: Project began
