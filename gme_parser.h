@@ -12,7 +12,7 @@ void *GMEParserOpen(struct SpotifyLFPluginDescription *plugin, const char *path,
 void GMEParserClose(struct SpotifyLFPluginDescription *plugin, void *ctx);
 
 unsigned int GMEParserSongCount(struct SpotifyLFPluginDescription *plugin, void *ctx);
-spbool GMEParserIsStereo(struct SpotifyLFPluginDescription *plugin, void *ctx);
+enum SPChannelFormat GMEParserGetChannelFormat(struct SpotifyLFPluginDescription *plugin, void *ctx);
 unsigned int GMEParserSampleRate(struct SpotifyLFPluginDescription *plugin, void *ctx);
 unsigned int GMEParserLengthInSamples(struct SpotifyLFPluginDescription *plugin, void *ctx);
 

@@ -41,7 +41,7 @@ typedef unsigned char spbool;
 enum { spfalse, sptrue };
 typedef unsigned char spbyte;
 
-#define SP_LF_PLUGIN_API_VERSION 4
+#define SP_LF_PLUGIN_API_VERSION 5
 
 /// Spotify supports the following output sound formats.
 enum SpotifyLFSoundFormat {
@@ -73,6 +73,11 @@ enum SPFieldType {
 	// to fail gracefully in such a case.
 };
 
+enum SPChannelFormat {
+	kSPMono,
+	kSPStereo,
+};
+
 struct SpotifyLFPluginDescription;
 
 /// Used to extract metadata from a file in the plugin's supported formats.
@@ -92,8 +97,9 @@ struct SpotifyLFParserPlugin {
 	unsigned int (*getSongCount)(struct SpotifyLFPluginDescription*, void *context);
 	
 	
-	/// Is this file in stereo?
-	spbool (*isStereo)(struct SpotifyLFPluginDescription*, void *context);
+	/// How many sound channels does this song have?
+	/// (currently only support 1 and 2 channels)
+	enum SPChannelFormat (*getChannelFormat)(struct SpotifyLFPluginDescription*, void *context);
 	
 	/// What does the metadata say that this file is in?
 	unsigned int (*getSampleRate)(struct SpotifyLFPluginDescription*, void *context);
@@ -173,7 +179,7 @@ struct SpotifyLFPlaybackPlugin {
 		struct SpotifyLFPluginDescription*, void *context,
 		unsigned int *samplerate,
 		enum SpotifyLFSoundFormat *format,
-		unsigned int *channels
+		enum SPChannelFormat *channels
 	);
 };
 

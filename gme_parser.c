@@ -60,9 +60,9 @@ unsigned int GMEParserSongCount(struct SpotifyLFPluginDescription *plugin, void 
 {
 	return self->track_count;
 }
-spbool GMEParserIsStereo(struct SpotifyLFPluginDescription *plugin, void *ctx)
+enum SPChannelFormat GMEParserGetChannelFormat(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
-	return sptrue;
+	return kSPStereo;
 }
 unsigned int GMEParserSampleRate(struct SpotifyLFPluginDescription *plugin, void *ctx)
 {
@@ -144,7 +144,7 @@ void GMEParserInitialize(struct SpotifyLFParserPlugin *plugin)
 	plugin->create = GMEParserOpen;
 	plugin->destroy = GMEParserClose;
 	plugin->getSongCount = GMEParserSongCount;
-	plugin->isStereo = GMEParserIsStereo;
+	plugin->getChannelFormat = GMEParserGetChannelFormat;
 	plugin->getSampleRate = GMEParserSampleRate;
 	plugin->getLengthInSamples = GMEParserLengthInSamples;
 	plugin->hasField = GMEParserHasField;

@@ -84,11 +84,11 @@ unsigned int GMEPlayerGetLengthInSamples(struct SpotifyLFPluginDescription *plug
 	return self->length_in_samples;
 }
 
-void GMEPlayerGetAudioFormat(struct SpotifyLFPluginDescription *plugin, void *ctx, unsigned int *samplerate_, enum SpotifyLFSoundFormat *format, unsigned int *channels)
+void GMEPlayerGetAudioFormat(struct SpotifyLFPluginDescription *plugin, void *ctx, unsigned int *samplerate_, enum SpotifyLFSoundFormat *format, enum SPChannelFormat *channelFormat)
 {
 	*samplerate_ = samplerate;
 	*format = kSoundFormat16BitsPerSample;
-	*channels = 2;
+	*channelFormat = kSPStereo;
 }
 
 

@@ -25,7 +25,7 @@ void GMEPlayerGetAudioFormat(
 	struct SpotifyLFPluginDescription *plugin, void *ctx,
 	unsigned int *samplerate,
 	enum SpotifyLFSoundFormat *format,
-	unsigned int *channels
+	enum SPChannelFormat *channelFormat
 );
 
 void GMEPlayerInitialize(struct SpotifyLFPlaybackPlugin *plugin);
